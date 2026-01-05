@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from train_speed_env import TrainSpeedProfileEnv
 
 
-def verify_data(coordinates_file='coordinates.dat', data_file='data.csv'):
+def verify_data(coordinates_file='data/coordinates.dat', data_file='data/data.csv'):
     """
     Verify and display data statistics
     """
@@ -60,7 +60,7 @@ def verify_data(coordinates_file='coordinates.dat', data_file='data.csv'):
     
     # Analyze speed limits
     print("\n5. Speed Limit Analysis...")
-    speed_limits = track_data['Speed_limit'].values
+    speed_limits = track_data['Speed limit'].values
     station_mask = speed_limits == 1
     n_stations = np.sum(station_mask)
     

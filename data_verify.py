@@ -132,7 +132,7 @@ def visualize_track(coordinates_file='data/coordinates.dat', data_file='data/dat
     cumulative_distances = np.concatenate([[0], np.cumsum(distances)])
     
     # Identify stations
-    station_mask = track_data['Speed limit'] == 1
+    station_mask = track_data['Speed_limit'] == 1
     station_positions = cumulative_distances[:-1][station_mask]
     
     # Create figure

@@ -60,7 +60,7 @@ def verify_data(coordinates_file='data/coordinates.dat', data_file='data/data.cs
     
     # Analyze speed limits
     print("\n5. Speed Limit Analysis...")
-    speed_limits = track_data['Speed limit'].values
+    speed_limits = track_data['Speed_limit'].values
     station_mask = speed_limits == 1
     n_stations = np.sum(station_mask)
     
@@ -132,7 +132,7 @@ def visualize_track(coordinates_file='data/coordinates.dat', data_file='data/dat
     cumulative_distances = np.concatenate([[0], np.cumsum(distances)])
     
     # Identify stations
-    station_mask = track_data['Speed_limit'] == 1
+    station_mask = track_data['Speed limit'] == 1
     station_positions = cumulative_distances[:-1][station_mask]
     
     # Create figure

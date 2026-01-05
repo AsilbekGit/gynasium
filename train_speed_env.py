@@ -28,6 +28,9 @@ class TrainSpeedProfileEnv(gym.Env):
     ):
         super().__init__()
         
+        coordinates_file = '/data/coordinates.dat'
+
+        data_file = '/data/data.csv'
         # Load track data
         self.coordinates = pd.read_csv(coordinates_file, header=None, 
                                       names=['node', 'x', 'y'], sep=r'\s+')

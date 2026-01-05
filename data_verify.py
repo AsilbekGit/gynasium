@@ -229,7 +229,7 @@ def visualize_track(coordinates_file='data/coordinates.dat', data_file='data/dat
     plt.show()
 
 
-def test_environment(coordinates_file='coordinates.dat', data_file='data.csv'):
+def test_environment(coordinates_file='data/coordinates.dat', data_file='data/data.csv'):
     """
     Test the environment with a simple policy
     """

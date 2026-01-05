@@ -1,0 +1,37 @@
+# --- 1. The Virtual Environment (Holds numpy, pandas, gymnasium, etc.) ---
+
+# This single line ignores ALL installed libraries inside 'sim'
+sim/
+
+# --- 2. Environment Variables ---
+.env
+.env.local
+*.env
+
+# --- 3. Python Internals ---
+__pycache__/
+*.pyc
+
+# Matplotlib / Plots
+*.png
+*.jpg
+*.jpeg
+*.svg
+# Keep a specific folder for plots if you want?
+!plots/
+
+# Pandas / Data
+*.dat
+*.csv
+*.xlsx
+*.parquet
+*.pkl
+*.pickle
+
+# Stable Baselines 3 / RL Models & Logs
+*.zip
+model.zip
+logs/
+tensorboard_logs/
+monitor.csv
+

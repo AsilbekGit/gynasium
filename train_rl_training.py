@@ -239,34 +239,73 @@ def compare_baseline(env, n_episodes=10):
     }
 
 
-def plot_speed_profile(positions, speeds, track_data, save_path=None):
+def plot_speed_profile(positions, speeds, track_data, cumulative_distances, save_path=None):
     """
     Plot the speed profile along with track characteristics.
     """
-    fig, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
+    fig, axes = plt.subplots(4, 1, figsize=(14, 12), sharex=True)
+    
+    # Identify station positions
+    station_mask = track_data['Speed_limit'] == 1
+    station_positions = cumulative_distances[station_mask]
     
     # Speed profile
-    axes[0].plot(positions, np.array(speeds) * 3.6, 'b-', linewidth=2, label='Train Speed')
-    axes[0].set_ylabel('Speed (km/h)')
-    axes[0].set_title('Train Speed Profile')
+    speeds_kmh = np.array(speeds) * 3.6
+    speeds_ms = np.array(speeds)
+    axes[0].plot(positions, speeds_kmh, 'b-', linewidth=2, label='Train Speed (km/h)')
+    axes[0].plot(positions, speeds_ms, 'g--', linewidth=1.5, alpha=0.7, label='Train Speed (m/s)')
+    
+    # Mark stations
+    for station_pos in station_positions:
+        axes[0].axvline(x=station_pos, color='r', linestyle='--', alpha=0.5, linewidth=1.5)
+    
+    # Plot speed limits
+    speed_limits_ms = track_data['Speed_limit'].values
+    speed_limits_ms[speed_limits_ms == 1] = 0  # Replace station markers with 0
+    axes[0].plot(cumulative_distances[:-1], speed_limits_ms * 3.6, 'orange', 
+                linewidth=1.5, alpha=0.6, label='Speed Limit (km/h)', linestyle='-.')
+    
+    axes[0].set_ylabel('Speed (km/h) / (m/s)')
+    axes[0].set_title('Train Speed Profile with Stations (red dashed lines)')
     axes[0].grid(True, alpha=0.3)
-    axes[0].legend()
+    axes[0].legend(loc='best')
     
     # Grade profile
-    segment_positions = np.linspace(0, positions[-1], len(track_data))
-    axes[1].plot(segment_positions, track_data['Grade'], 'g-', linewidth=2)
+    axes[1].plot(cumulative_distances[:-1], track_data['Grade'], 'g-', linewidth=2)
+    axes[1].fill_between(cumulative_distances[:-1], 0, track_data['Grade'], 
+                         where=(track_data['Grade'] > 0), alpha=0.3, color='red', label='Uphill')
+    axes[1].fill_between(cumulative_distances[:-1], 0, track_data['Grade'], 
+                         where=(track_data['Grade'] < 0), alpha=0.3, color='blue', label='Downhill')
+    for station_pos in station_positions:
+        axes[1].axvline(x=station_pos, color='r', linestyle='--', alpha=0.5, linewidth=1.5)
     axes[1].set_ylabel('Grade (%)')
-    axes[1].set_title('Track Grade')
+    axes[1].set_title('Track Grade (Positive = Uphill, Negative = Downhill)')
     axes[1].grid(True, alpha=0.3)
-    axes[1].axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    axes[1].axhline(y=0, color='k', linestyle='-', alpha=0.3)
+    axes[1].legend()
     
     # Curvature profile
-    axes[2].plot(segment_positions, track_data['Curvature'], 'r-', linewidth=2)
-    axes[2].set_ylabel('Curvature')
-    axes[2].set_xlabel('Position (m)')
-    axes[2].set_title('Track Curvature')
+    axes[2].plot(cumulative_distances[:-1], track_data['Curvature'], 'r-', linewidth=2)
+    for station_pos in station_positions:
+        axes[2].axvline(x=station_pos, color='r', linestyle='--', alpha=0.5, linewidth=1.5)
+    axes[2].set_ylabel('Curvature (%)')
+    axes[2].set_title('Track Curvature (Higher = Sharper Curve)')
     axes[2].grid(True, alpha=0.3)
     axes[2].axhline(y=0, color='k', linestyle='--', alpha=0.3)
+    
+    # Radius profile (calculated from curvature)
+    # Radius = 100 / Curvature(%)
+    radius = np.where(track_data['Curvature'] > 0.001, 
+                     100.0 / track_data['Curvature'], 
+                     10000)
+    axes[3].plot(cumulative_distances[:-1], radius, 'purple', linewidth=2)
+    for station_pos in station_positions:
+        axes[3].axvline(x=station_pos, color='r', linestyle='--', alpha=0.5, linewidth=1.5)
+    axes[3].set_ylabel('Radius (m)')
+    axes[3].set_xlabel('Position (m)')
+    axes[3].set_title('Curve Radius (Smaller = Sharper Turn)')
+    axes[3].set_ylim([0, 5000])  # Limit y-axis for better visibility
+    axes[3].grid(True, alpha=0.3)
     
     plt.tight_layout()
     
@@ -370,8 +409,8 @@ if __name__ == "__main__":
     
     # Create environment
     env = TrainSpeedProfileEnv(
-        coordinates_file='coordinates.dat',
-        data_file='data.csv',
+        coordinates_file='data/coordinates.dat',
+        data_file='data/data.csv',
         dt=1.0
     )
     
@@ -405,6 +444,7 @@ if __name__ == "__main__":
         eval_results['positions'][0],
         eval_results['speeds'][0],
         env.track_data,
+        env.cumulative_distances,
         save_path='speed_profile.png'
     )
     

@@ -156,7 +156,7 @@ def scenario_1_minimize_energy():
     Scenario 1: Minimize energy with no time constraints
     Focus purely on energy efficiency
     """
-    runner = ExperimentRunner('coordinates.dat', 'data.csv')
+    runner = ExperimentRunner('data/coordinates.dat', 'data/data.csv')
     
     env, name = runner.create_env_variant(
         'minimize_energy',
@@ -179,10 +179,10 @@ def scenario_2_time_constrained():
     Scenario 2: Minimize energy with fixed arrival time
     Balance between energy and schedule
     """
-    runner = ExperimentRunner('coordinates.dat', 'data.csv')
+    runner = ExperimentRunner('data/coordinates.dat', 'data/data.csv')
     
     # Calculate reasonable target time (e.g., average speed of 25 m/s)
-    env_temp = TrainSpeedProfileEnv('coordinates.dat', 'data.csv')
+    env_temp = TrainSpeedProfileEnv('data/coordinates.dat', 'data/data.csv')
     target_time = env_temp.total_distance / 25  # seconds
     
     env, name = runner.create_env_variant(
@@ -206,7 +206,7 @@ def scenario_3_comfort_optimized():
     Scenario 3: Optimize for passenger comfort
     Minimize jerky movements while maintaining efficiency
     """
-    runner = ExperimentRunner('coordinates.dat', 'data.csv')
+    runner = ExperimentRunner('data/coordinates.dat', 'data/data.csv')
     
     # Need to modify reward function to emphasize comfort
     # This would require subclassing the environment
@@ -232,7 +232,7 @@ def scenario_4_compare_algorithms():
     """
     Scenario 4: Compare different RL algorithms
     """
-    runner = ExperimentRunner('coordinates.dat', 'data.csv')
+    runner = ExperimentRunner('data/coordinates.dat', 'data/data.csv')
     
     algorithms = ['PPO', 'DDPG', 'SAC']
     
@@ -252,7 +252,7 @@ def scenario_5_adaptive_timestep():
     """
     Scenario 5: Test different control frequencies
     """
-    runner = ExperimentRunner('coordinates.dat', 'data.csv')
+    runner = ExperimentRunner('data/coordinates.dat', 'data/data.csv')
     
     timesteps = [0.5, 1.0, 2.0]  # seconds
     
@@ -301,7 +301,7 @@ def run_all_scenarios():
     # Create combined comparison if multiple scenarios completed
     if len(all_runners) > 1:
         print("\nCreating combined comparison...")
-        combined_runner = ExperimentRunner('coordinates.dat', 'data.csv')
+        combined_runner = ExperimentRunner('data/coordinates.dat', 'data/data.csv')
         for _, runner in all_runners:
             combined_runner.experiments.extend(runner.experiments)
         combined_runner.compare_experiments(save_path='all_scenarios_comparison.png')
@@ -313,7 +313,7 @@ def quick_test():
     """
     print("Running quick test...")
     
-    runner = ExperimentRunner('coordinates.dat', 'data.csv')
+    runner = ExperimentRunner('data/coordinates.dat', 'data/data.csv')
     env, name = runner.create_env_variant('quick_test')
     
     result = runner.run_experiment(

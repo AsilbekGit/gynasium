@@ -30,10 +30,6 @@ class TrainSpeedProfileEnv(gym.Env):
     ):
         super().__init__()
         
-        coordinates_file = 'data/coordinates.dat'
-
-        data_file = 'data/data.csv'
-
         # Load track data
         self.coordinates = pd.read_csv(coordinates_file, header=None, 
                                       names=['node', 'x', 'y'], sep=r'\s+')
@@ -456,8 +452,8 @@ if __name__ == "__main__":
     from stable_baselines3.common.vec_env import DummyVecEnv
     from stable_baselines3.common.callbacks import CheckpointCallback
     
-    # Create environment
-    env = TrainSpeedProfileEnv(
+    # Create environment (unwrapped first)
+    env_unwrapped = TrainSpeedProfileEnv(
         coordinates_file='data/coordinates.dat',
         data_file='data/data.csv',
         dt=1.0,  # 1 second time steps
@@ -465,8 +461,8 @@ if __name__ == "__main__":
         station_dwell_time=30.0,  # 30 seconds at each station
     )
     
-    # Wrap environment
-    env = DummyVecEnv([lambda: env])
+    # Wrap environment for training
+    env = DummyVecEnv([lambda: env_unwrapped])
     
     # Choose algorithm: PPO (good for continuous control)
     print("Training with PPO...")
@@ -505,23 +501,25 @@ if __name__ == "__main__":
     print("\nTraining complete!")
     print("\nTesting the trained model...")
     
-    # Test the trained model
-    obs = env.reset()
+    # Test the trained model (use unwrapped env)
+    obs, info = env_unwrapped.reset()
     episode_reward = 0
     episode_energy = 0
     
-    for _ in range(2000):
-        action, _ = model.predict(obs, deterministic=True)
-        obs, reward, done, info = env.step(action)
-        episode_reward += reward[0]
-        episode_energy = info[0]['total_energy']
+    for step in range(2000):
+        # Model expects shape (1, obs_dim)
+        obs_array = obs.reshape(1, -1)
+        action, _ = model.predict(obs_array, deterministic=True)
+        obs, reward, terminated, truncated, info = env_unwrapped.step(action)
+        episode_reward += reward
+        episode_energy = info['total_energy']
         
-        if done:
+        if terminated or truncated:
             break
     
     print(f"\nTest Episode Results:")
     print(f"Total Reward: {episode_reward:.2f}")
     print(f"Total Energy: {episode_energy:.4f} kWh")
-    print(f"Total Time: {info[0]['time_elapsed']:.1f} seconds")
-    print(f"Stations Completed: {info[0]['stations_completed']}")
-    print(f"Average Speed: {(info[0]['position'] / info[0]['time_elapsed']) * 3.6:.1f} km/h")
+    print(f"Total Time: {info['time_elapsed']:.1f} seconds")
+    print(f"Stations Completed: {info['stations_completed']}")
+    print(f"Average Speed: {(info['position'] / info['time_elapsed']) * 3.6:.1f} km/h")

@@ -249,15 +249,15 @@ def test_environment(coordinates_file='data/coordinates.dat', data_file='data/da
         # Run a simple episode
         print("\nRunning test episode with constant acceleration...")
         obs, info = env.reset()
-        done = False
+        terminated = False
+        truncated = False
         step = 0
         max_steps = 5000
         
-        while not done and step < max_steps:
+        while not (terminated or truncated) and step < max_steps:
             # Simple policy: moderate constant acceleration
             action = np.array([0.2])
             obs, reward, terminated, truncated, info = env.step(action)
-            done = terminated or truncated
             step += 1
             
             if step % 500 == 0:

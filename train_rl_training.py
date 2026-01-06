@@ -162,6 +162,11 @@ def evaluate_agent(model, env, n_episodes=10):
     """
     Evaluate a trained agent over multiple episodes.
     
+    Args:
+        model: Trained SB3 model
+        env: Unwrapped Gymnasium environment (NOT VecEnv)
+        n_episodes: Number of evaluation episodes
+    
     Returns:
         Dictionary with evaluation metrics (all Python native types)
     """
@@ -172,18 +177,25 @@ def evaluate_agent(model, env, n_episodes=10):
     positions = []
     
     for episode in range(n_episodes):
-        obs = env.reset()
+        # Gym API: reset returns (obs, info)
+        obs, info = env.reset()
         episode_reward = 0
         episode_speeds = []
         episode_positions = []
         
         done = False
-        while not done:
-            action, _ = model.predict(obs, deterministic=True)
-            obs, reward, done, info = env.step(action)
+        truncated = False
+        
+        while not (done or truncated):
+            # Model expects shape (1, obs_dim) for prediction
+            obs_array = obs.reshape(1, -1)
+            action, _ = model.predict(obs_array, deterministic=True)
+            
+            # Gym API: step returns (obs, reward, terminated, truncated, info)
+            obs, reward, done, truncated, info = env.step(action)
             
             episode_reward += reward
-            episode_speeds.append(float(info['speed']))  # Convert to Python float
+            episode_speeds.append(float(info['speed']))
             episode_positions.append(float(info['position']))
         
         rewards.append(float(episode_reward))
@@ -212,19 +224,25 @@ def compare_baseline(env, n_episodes=10):
     Create a simple baseline by maintaining constant speed.
     This helps evaluate if RL agent actually learned something useful.
     Returns all values as Python native types.
+    
+    Args:
+        env: Unwrapped Gymnasium environment (NOT VecEnv)
     """
     baseline_energies = []
     baseline_times = []
     
     for _ in range(n_episodes):
-        obs = env.reset()
+        # Gym API: reset returns (obs, info)
+        obs, info = env.reset()
         total_energy = 0
         
         # Simple strategy: maintain speed near average speed limit
         target_speed = 25  # m/s (~90 km/h)
         
         done = False
-        while not done:
+        truncated = False
+        
+        while not (done or truncated):
             current_speed = obs[1]
             # Simple proportional control
             if current_speed < target_speed:
@@ -232,7 +250,7 @@ def compare_baseline(env, n_episodes=10):
             else:
                 action = np.array([-0.1])  # Light braking
             
-            obs, reward, done, info = env.step(action)
+            obs, reward, done, truncated, info = env.step(action)
             total_energy = info['total_energy']
         
         baseline_energies.append(float(total_energy))
@@ -414,8 +432,8 @@ def hyperparameter_search(env, algorithm='PPO', n_trials=10):
 if __name__ == "__main__":
     from train_speed_env import TrainSpeedProfileEnv
     
-    # Create environment
-    env = TrainSpeedProfileEnv(
+    # Create environment (unwrapped)
+    env_unwrapped = TrainSpeedProfileEnv(
         coordinates_file='data/coordinates.dat',
         data_file='data/data.csv',
         dt=1.0
@@ -424,25 +442,25 @@ if __name__ == "__main__":
     # Option 1: Train a single agent
     print("Training PPO agent...")
     model, metrics = train_agent(
-        env,
+        env_unwrapped,  # Pass unwrapped env, it will be wrapped inside
         algorithm='PPO',
         total_timesteps=500000,
         save_path='./models/',
         log_path='./logs/'
     )
     
-    # Evaluate
+    # Evaluate (use unwrapped env)
     print("\nEvaluating trained agent...")
-    eval_results = evaluate_agent(model, env, n_episodes=10)
+    eval_results = evaluate_agent(model, env_unwrapped, n_episodes=10)
     
     print(f"\nEvaluation Results:")
     print(f"Mean Energy: {eval_results['mean_energy']:.4f} ± {eval_results['std_energy']:.4f} kWh")
     print(f"Mean Time: {eval_results['mean_time']:.1f} ± {eval_results['std_time']:.1f} s")
     print(f"Mean Reward: {eval_results['mean_reward']:.2f} ± {eval_results['std_reward']:.2f}")
     
-    # Compare with baseline
+    # Compare with baseline (use unwrapped env)
     print("\nBaseline comparison...")
-    baseline = compare_baseline(env, n_episodes=10)
+    baseline = compare_baseline(env_unwrapped, n_episodes=10)
     print(f"Baseline Energy: {baseline['mean_energy']:.4f} ± {baseline['std_energy']:.4f} kWh")
     print(f"Energy Savings: {((baseline['mean_energy'] - eval_results['mean_energy']) / baseline['mean_energy'] * 100):.1f}%")
     
@@ -450,8 +468,8 @@ if __name__ == "__main__":
     plot_speed_profile(
         eval_results['positions'][0],
         eval_results['speeds'][0],
-        env.track_data,
-        env.cumulative_distances,
+        env_unwrapped.track_data,
+        env_unwrapped.cumulative_distances,
         save_path='speed_profile.png'
     )
     

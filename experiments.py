@@ -39,41 +39,54 @@ class ExperimentRunner:
                       timesteps=500000, n_eval_episodes=10):
         """
         Run a single experiment
+        
+        Args:
+            experiment_name: Name of the experiment
+            env: UNWRAPPED Gymnasium environment
+            algorithm: RL algorithm to use
+            timesteps: Training timesteps
+            n_eval_episodes: Number of evaluation episodes
         """
+        import os
+        
         print(f"\n{'='*60}")
         print(f"Running Experiment: {experiment_name}")
         print(f"{'='*60}")
         
-        # Train
+        # Create experiment directory
+        exp_dir = f'./experiments/{experiment_name}/'
+        os.makedirs(exp_dir, exist_ok=True)
+        
+        # Train (train_agent will wrap the env internally)
         model, metrics = train_agent(
             env,
             algorithm=algorithm,
             total_timesteps=timesteps,
-            save_path=f'./experiments/{experiment_name}/',
+            save_path=exp_dir,
             log_path=f'./logs/{experiment_name}/'
         )
         
-        # Evaluate
+        # Evaluate (use unwrapped env)
         eval_results = evaluate_agent(model, env, n_episodes=n_eval_episodes)
         
-        # Store results
+        # Store results (convert numpy types to Python types for JSON serialization)
         result = {
             'name': experiment_name,
             'algorithm': algorithm,
             'timesteps': timesteps,
-            'mean_energy': eval_results['mean_energy'],
-            'std_energy': eval_results['std_energy'],
-            'mean_time': eval_results['mean_time'],
-            'std_time': eval_results['std_time'],
-            'mean_reward': eval_results['mean_reward'],
-            'speeds': eval_results['speeds'][0],  # Save first episode
-            'positions': eval_results['positions'][0]
+            'mean_energy': float(eval_results['mean_energy']),
+            'std_energy': float(eval_results['std_energy']),
+            'mean_time': float(eval_results['mean_time']),
+            'std_time': float(eval_results['std_time']),
+            'mean_reward': float(eval_results['mean_reward']),
+            'speeds': [float(x) for x in eval_results['speeds'][0]],  # Convert to Python floats
+            'positions': [float(x) for x in eval_results['positions'][0]]
         }
         
         self.experiments.append(result)
         
         # Save results
-        with open(f'./experiments/{experiment_name}/results.json', 'w') as f:
+        with open(f'{exp_dir}/results.json', 'w') as f:
             json.dump(result, f, indent=2)
         
         return result

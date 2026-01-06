@@ -64,6 +64,12 @@ def train_agent(
     Returns:
         Trained model
     """
+    import os
+    
+    # Create directories if they don't exist
+    os.makedirs(save_path, exist_ok=True)
+    os.makedirs(log_path, exist_ok=True)
+    
     # Wrap environment
     env = Monitor(env)
     env = DummyVecEnv([lambda: env])
@@ -139,11 +145,11 @@ def train_agent(
     # Save final model
     model.save(f"{save_path}/{algorithm}_final")
     
-    # Save training metrics
+    # Save training metrics (convert numpy types to Python types)
     metrics = {
-        'rewards': training_callback.episode_rewards,
-        'energies': training_callback.episode_energies,
-        'times': training_callback.episode_times
+        'rewards': [float(x) for x in training_callback.episode_rewards],
+        'energies': [float(x) for x in training_callback.episode_energies],
+        'times': [float(x) for x in training_callback.episode_times]
     }
     
     with open(f"{save_path}/{algorithm}_metrics.json", 'w') as f:
@@ -157,7 +163,7 @@ def evaluate_agent(model, env, n_episodes=10):
     Evaluate a trained agent over multiple episodes.
     
     Returns:
-        Dictionary with evaluation metrics
+        Dictionary with evaluation metrics (all Python native types)
     """
     rewards = []
     energies = []
@@ -177,22 +183,22 @@ def evaluate_agent(model, env, n_episodes=10):
             obs, reward, done, info = env.step(action)
             
             episode_reward += reward
-            episode_speeds.append(info['speed'])
-            episode_positions.append(info['position'])
+            episode_speeds.append(float(info['speed']))  # Convert to Python float
+            episode_positions.append(float(info['position']))
         
-        rewards.append(episode_reward)
-        energies.append(info['total_energy'])
-        times.append(info['time_elapsed'])
+        rewards.append(float(episode_reward))
+        energies.append(float(info['total_energy']))
+        times.append(float(info['time_elapsed']))
         speeds.append(episode_speeds)
         positions.append(episode_positions)
     
     return {
-        'mean_reward': np.mean(rewards),
-        'std_reward': np.std(rewards),
-        'mean_energy': np.mean(energies),
-        'std_energy': np.std(energies),
-        'mean_time': np.mean(times),
-        'std_time': np.std(times),
+        'mean_reward': float(np.mean(rewards)),
+        'std_reward': float(np.std(rewards)),
+        'mean_energy': float(np.mean(energies)),
+        'std_energy': float(np.std(energies)),
+        'mean_time': float(np.mean(times)),
+        'std_time': float(np.std(times)),
         'speeds': speeds,
         'positions': positions,
         'rewards': rewards,
@@ -205,6 +211,7 @@ def compare_baseline(env, n_episodes=10):
     """
     Create a simple baseline by maintaining constant speed.
     This helps evaluate if RL agent actually learned something useful.
+    Returns all values as Python native types.
     """
     baseline_energies = []
     baseline_times = []
@@ -228,14 +235,14 @@ def compare_baseline(env, n_episodes=10):
             obs, reward, done, info = env.step(action)
             total_energy = info['total_energy']
         
-        baseline_energies.append(total_energy)
-        baseline_times.append(info['time_elapsed'])
+        baseline_energies.append(float(total_energy))
+        baseline_times.append(float(info['time_elapsed']))
     
     return {
-        'mean_energy': np.mean(baseline_energies),
-        'std_energy': np.std(baseline_energies),
-        'mean_time': np.mean(baseline_times),
-        'std_time': np.std(baseline_times)
+        'mean_energy': float(np.mean(baseline_energies)),
+        'std_energy': float(np.std(baseline_energies)),
+        'mean_time': float(np.mean(baseline_times)),
+        'std_time': float(np.std(baseline_times))
     }
 
 
